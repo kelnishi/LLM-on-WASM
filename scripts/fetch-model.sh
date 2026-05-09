@@ -15,7 +15,12 @@ mkdir -p models
 cd models
 
 REPO="onnx-community/gemma-3-270m-it-ONNX"
-VARIANT="${VARIANT:-q4}"
+# fp32 by default — the only variant that runs unmodified through ONNX
+# Runtime 1.20 (the version pinned by `ort` 2.0.0-rc.10 used in the host).
+# `q4`/`q4f16` use `com.microsoft.GatherBlockQuantized` with a `bits` attr
+# that older ORT releases don't recognize. `fp16` works but our backend code
+# assumes fp32 logits/KV tensors.
+VARIANT="${VARIANT:-fp32}"
 OUT="gemma3_270m.onnx"
 
 case "$VARIANT" in

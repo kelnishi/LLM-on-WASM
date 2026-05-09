@@ -1,0 +1,25 @@
+[package]
+name = "wasi-nn-slm-host"
+version = "0.1.0"
+edition = "2021"
+description = "Tiny wasmtime host for wasi-nn-slm (wasi-cli + wasi-nn ONNX backend)."
+publish = false
+
+[[bin]]
+name = "wasi-nn-slm-host"
+path = "src/main.rs"
+
+[dependencies]
+wasmtime = "44"
+wasmtime-wasi = "44"
+# We only want the WIT host bindings, not the bundled backends. wasmtime-wasi-nn's
+# ONNX backend only handles Fp32 tensors, which is unusable for any LLM (input_ids
+# and attention_mask need I64). We provide our own backend in src/backend.rs.
+wasmtime-wasi-nn = { version = "44", default-features = false }
+# Pin ort to rc.10 — later prereleases changed `Session::inputs/outputs`
+# from fields to methods and gated `ort-sys/download-binaries` behind a TLS
+# feature flag. rc.10's ureq dep already bundles native-tls.
+ort = { version = "=2.0.0-rc.10", features = ["half"] }
+half = "2"
+ndarray = "0.16"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter"] }

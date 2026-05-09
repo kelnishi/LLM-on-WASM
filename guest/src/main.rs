@@ -163,7 +163,7 @@ fn step(ctx: &GraphExecutionContext, tokens: &[i64]) -> Result<u32> {
     let seq_len = tokens.len();
     let seq_len_u32 = seq_len as u32;
 
-    let mut inputs: Vec<(String, Tensor)> = Vec::with_capacity(3 + 2 * NUM_LAYERS);
+    let mut inputs: Vec<(String, Tensor)> = Vec::with_capacity(2 + 2 * NUM_LAYERS);
 
     inputs.push((
         "input_ids".to_string(),
@@ -174,16 +174,6 @@ fn step(ctx: &GraphExecutionContext, tokens: &[i64]) -> Result<u32> {
     inputs.push((
         "attention_mask".to_string(),
         Tensor::new(&[1, seq_len_u32], TensorType::I64, &i64_le_bytes(&attn_mask)),
-    ));
-
-    let position_ids: Vec<i64> = (0..seq_len as i64).collect();
-    inputs.push((
-        "position_ids".to_string(),
-        Tensor::new(
-            &[1, seq_len_u32],
-            TensorType::I64,
-            &i64_le_bytes(&position_ids),
-        ),
     ));
 
     // Empty KV cache: shape [1, num_kv_heads, 0, head_dim], so zero bytes.

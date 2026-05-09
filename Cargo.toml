@@ -1,21 +1,10 @@
-[package]
-name = "wasi-nn-slm"
-version = "0.1.0"
-edition = "2021"
-description = "Minimal wasi-nn SLM runner (Gemma 3 270M ONNX) targeting wasm32-wasip2."
-publish = false
-
-[[bin]]
-name = "wasi-nn-slm"
-path = "src/main.rs"
-
-[dependencies]
-wit-bindgen = "0.57"
-tokenizers = { version = "0.23", default-features = false, features = ["unstable_wasm"] }
+[workspace]
+resolver = "2"
+members = ["guest", "host"]
+# Plain `cargo build` builds the host only — the guest needs an explicit
+# `--target wasm32-wasip2` and won't link natively.
+default-members = ["host"]
 
 [profile.release]
-opt-level = "s"
-lto = true
-codegen-units = 1
-strip = true
-panic = "abort"
+opt-level = 3
+lto = "thin"
