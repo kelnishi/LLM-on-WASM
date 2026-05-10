@@ -1,0 +1,14 @@
+[package]
+name = "wasi-nn-llm"
+version = "0.1.0"
+edition = "2021"
+description = "Minimal wasi-nn GGML/GGUF runner (Qwen2.5 0.5B Instruct) targeting wasm32-wasip2 — WasmEdge convention: U8 prompt in, U8 response out."
+publish = false
+
+[[bin]]
+name = "wasi-nn-llm"
+path = "src/main.rs"
+
+[dependencies]
+wit-bindgen = "0.57"
+# Profiles are defined at the workspace root.

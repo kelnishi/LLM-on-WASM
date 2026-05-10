@@ -2575,6 +2575,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b"
 
 [[package]]
+name = "wasi-nn-llm"
+version = "0.1.0"
+dependencies = [
+ "wit-bindgen 0.57.1",
+]
+
+[[package]]
 name = "wasi-nn-slm"
 version = "0.1.0"
 dependencies = [
@@ -2593,6 +2600,13 @@ dependencies = [
  "wasmtime",
  "wasmtime-wasi",
  "wasmtime-wasi-nn",
+]
+
+[[package]]
+name = "wasi-nn-torch"
+version = "0.1.0"
+dependencies = [
+ "wit-bindgen 0.57.1",
 ]
 
 [[package]]
