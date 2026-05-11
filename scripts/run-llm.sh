@@ -34,7 +34,7 @@
 #                (default: Wacs.WASI.NN.LlamaSharp.dll)
 #   MODEL_DIR    directory of model files (default: ./models)
 #                forwarded to the host as both
-#                WACS_WASINN_GGUF_DIR and WACS_WASINN_ONNXGENAI_DIR
+#                WACS_WASINN_GGUF_DIR and WACS_WASINN_GENAI_DIR
 #                so the backend picks whichever one it scans for
 #   MODEL_NAME   model stem the guest calls load_by_name() with
 #                (default: in-guest DEFAULT_MODEL_NAME constant)
@@ -101,7 +101,7 @@ fi
 # both find their model directory without per-backend script
 # variants.
 export WACS_WASINN_GGUF_DIR="$MODEL_DIR"
-export WACS_WASINN_ONNXGENAI_DIR="$MODEL_DIR"
+export WACS_WASINN_GENAI_DIR="$MODEL_DIR"
 
 # Forward MODEL_NAME and the env vars the backend's IBindable
 # reads into the wasm guest's environment (WASI only exposes

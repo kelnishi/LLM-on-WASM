@@ -64,9 +64,12 @@ fn main() -> Result<()> {
             break;
         }
 
-        // The WasmEdge GGUF convention takes a single U8 input tensor
-        // carrying the raw UTF-8 prompt bytes; LlamaSharp does its own
-        // tokenization and chat-template wrapping host-side.
+        // Single U8 input tensor named "prompt" with the raw UTF-8
+        // prompt bytes. The backend handles tokenization, chat
+        // templating, sampling, and KV-cached decode host-side.
+        //   - LlamaSharp ignores input names (uses inputs[0])
+        //   - OnnxRuntimeGenAI dispatches by the first input name:
+        //     "prompt" picks the bytes-in / bytes-out generation path
         let prompt_bytes = user.as_bytes();
         let prompt_len = prompt_bytes.len() as u32;
         let input = Tensor::new(&[prompt_len], TensorType::U8, prompt_bytes);
@@ -74,7 +77,7 @@ fn main() -> Result<()> {
         let ctx: GraphExecutionContext =
             graph.init_execution_context().map_err(fmt_nn_err)?;
         let outputs = ctx
-            .compute(vec![("0".to_string(), input)])
+            .compute(vec![("prompt".to_string(), input)])
             .map_err(fmt_nn_err)?;
 
         // Single named output "0" per the WasmEdge convention; we
