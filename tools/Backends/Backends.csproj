@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      Stages every WACS wasi-nn backend NuGet into a single bin dir
+      that the launch scripts (run-llm.sh, run-genai.sh) point
+      BACKEND_DLL at.
+
+      EnableDynamicLoading makes MSBuild copy each package's managed
+      dependencies + RID-specific native libs (libtorch, libllama,
+      LibTorchSharp, libonnxruntime, runtimes/RID/native/*) into the
+      bin alongside the backend assembly. Combined with WACS's
+      BindBackendLoadContext (gap 30 in the historical report),
+      Assembly.LoadFrom of any of these dlls resolves its whole
+      transitive managed + native graph from this bin without manual
+      staging.
+
+      Pinned versions; bump as needed when newer NuGets ship.
+    -->
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <EnableDynamicLoading>true</EnableDynamicLoading>
+        <Nullable>enable</Nullable>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <IsPackable>false</IsPackable>
+        <!-- Suppress NU1903 / NU1701-style noise from transitive deps
+             that this stager project doesn't itself ship. -->
+        <NoWarn>$(NoWarn);NU1701;NU1903</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="WACS.WASI.NN.OnnxRuntime"      Version="0.3.0" />
+        <PackageReference Include="WACS.WASI.NN.OnnxRuntimeGenAI" Version="0.1.3" />
+        <PackageReference Include="WACS.WASI.NN.LlamaSharp"       Version="0.2.2" />
+        <PackageReference Include="WACS.WASI.NN.TorchSharp"       Version="0.1.1" />
+        <PackageReference Include="WACS.WASI.NN.MLNet"            Version="0.2.2" />
+    </ItemGroup>
+
+</Project>

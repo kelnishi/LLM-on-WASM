@@ -1,3 +1,7 @@
 /target
 /models
 .DS_Store
+
+# .NET build outputs from tools/Backends (scripts/setup.sh)
+**/bin/
+**/obj/

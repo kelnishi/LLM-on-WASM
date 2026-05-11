@@ -21,9 +21,13 @@
 # Without -v or --log, stderr is redirected to /dev/null so the
 # terminal carries only the REPL.
 #
+# Requires:
+#   `wacs` on PATH — install with:
+#       dotnet tool install --global WACS.Cli
+#
 # Overrides (env vars):
-#   WACS_REPO   path to the WACS source tree (default: ../WACS)
-#   WACS_CLI    full path to the Wacs.Console binary
+#   WACS        wacs invocation (default: `wacs`); override to e.g.
+#               `dotnet wacs` for a local-tool-manifest setup
 #   MODEL_DIR   directory containing gemma3_270m.onnx + tokenizer.json
 #               (default: ./models)
 #   WASM        full path to the guest wasm component
@@ -56,8 +60,7 @@ done
 cd "$(dirname "$0")/.."
 REPO_ROOT="$(pwd)"
 
-: "${WACS_REPO:=$REPO_ROOT/../WACS}"
-: "${WACS_CLI:=$WACS_REPO/Wacs.Console/Wacs.Console/bin/Release/net9.0/Wacs.Console}"
+: "${WACS:=wacs}"
 : "${MODEL_DIR:=$REPO_ROOT/models}"
 : "${WASM:=$REPO_ROOT/target/wasm32-wasip2/release/wasi-nn-slm.wasm}"
 
@@ -68,10 +71,10 @@ if [ ! -f "$WASM" ]; then
 fi
 
 # Sanity checks (these errors go to the user's stderr regardless of mode).
-[ -x "$WACS_CLI" ] || {
-    echo "error: WACS CLI not found at $WACS_CLI" >&2
-    echo "        build it with: (cd $WACS_REPO/Wacs.Console/Wacs.Console && dotnet build -c Release)" >&2
-    echo "        or set WACS_CLI=/path/to/Wacs.Console" >&2
+command -v $WACS >/dev/null 2>&1 || {
+    echo "error: WACS CLI ($WACS) not found on PATH" >&2
+    echo "        install it with: dotnet tool install --global WACS.Cli" >&2
+    echo "        or set WACS=/path/to/wacs" >&2
     exit 1
 }
 
@@ -90,16 +93,16 @@ fi
 
 case "$STDERR_MODE" in
     quiet)
-        exec "$WACS_CLI" run "$WASM" \
+        exec $WACS run "$WASM" \
             --wasip2 --wasi-nn --native-memory -d "$MODEL_DIR::/models" \
             2>/dev/null ;;
     passthrough)
-        exec "$WACS_CLI" run "$WASM" \
+        exec $WACS run "$WASM" \
             --wasip2 --wasi-nn --native-memory -d "$MODEL_DIR::/models" ;;
     log)
         : > "$LOG_FILE"  # truncate
         echo "logging stderr to $LOG_FILE" >&2
-        exec "$WACS_CLI" run "$WASM" \
+        exec $WACS run "$WASM" \
             --wasip2 --wasi-nn --native-memory -d "$MODEL_DIR::/models" \
             2>>"$LOG_FILE" ;;
 esac

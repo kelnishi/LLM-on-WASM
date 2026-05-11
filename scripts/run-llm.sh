@@ -27,11 +27,17 @@
 # Without -v or --log, stderr is redirected to /dev/null so the
 # terminal carries only the REPL.
 #
+# Requires:
+#   `wacs` on PATH and backend NuGets staged — one-shot setup via:
+#       scripts/setup.sh
+#
 # Overrides (env vars):
-#   WACS_REPO    path to the WACS source tree (default: ../WACS)
-#   WACS_CLI     full path to the Wacs.Console binary
+#   WACS         wacs invocation (default: `wacs`); override to e.g.
+#                `dotnet wacs` for a local-tool-manifest setup
+#   BACKENDS_DIR directory of staged backend dlls
+#                (default: tools/Backends/bin/Release/net8.0)
 #   BACKEND_DLL  full path to the wasi-nn backend .dll
-#                (default: Wacs.WASI.NN.LlamaSharp.dll)
+#                (default: $BACKENDS_DIR/Wacs.WASI.NN.LlamaSharp.dll)
 #   MODEL_DIR    directory of model files (default: ./models)
 #                forwarded to the host as both
 #                WACS_WASINN_GGUF_DIR and WACS_WASINN_GENAI_DIR
@@ -68,9 +74,9 @@ done
 cd "$(dirname "$0")/.."
 REPO_ROOT="$(pwd)"
 
-: "${WACS_REPO:=$REPO_ROOT/../WACS}"
-: "${WACS_CLI:=$WACS_REPO/Wacs.Console/Wacs.Console/bin/Release/net9.0/Wacs.Console}"
-: "${BACKEND_DLL:=$WACS_REPO/Wacs.WASI/Wacs.WASI.NN/Wacs.WASI.NN.LlamaSharp/bin/Release/net8.0/Wacs.WASI.NN.LlamaSharp.dll}"
+: "${WACS:=wacs}"
+: "${BACKENDS_DIR:=$REPO_ROOT/tools/Backends/bin/Release/net8.0}"
+: "${BACKEND_DLL:=$BACKENDS_DIR/Wacs.WASI.NN.LlamaSharp.dll}"
 : "${MODEL_DIR:=$REPO_ROOT/models}"
 : "${WASM:=$REPO_ROOT/target/wasm32-wasip2/release/wasi-nn-llm.wasm}"
 
@@ -81,16 +87,16 @@ if [ ! -f "$WASM" ]; then
 fi
 
 # Sanity checks (these errors go to the user's stderr regardless of mode).
-[ -x "$WACS_CLI" ] || {
-    echo "error: WACS CLI not found at $WACS_CLI" >&2
-    echo "        build it with: (cd $WACS_REPO/Wacs.Console/Wacs.Console && dotnet build -c Release)" >&2
-    echo "        or set WACS_CLI=/path/to/Wacs.Console" >&2
+command -v $WACS >/dev/null 2>&1 || {
+    echo "error: WACS CLI ($WACS) not found on PATH" >&2
+    echo "        install it with: dotnet tool install --global WACS.Cli" >&2
+    echo "        or set WACS=/path/to/wacs" >&2
     exit 1
 }
 
 [ -f "$BACKEND_DLL" ] || {
     echo "error: backend DLL not found at $BACKEND_DLL" >&2
-    echo "        build it with: (cd $(dirname $(dirname $BACKEND_DLL)) && dotnet build -c Release)" >&2
+    echo "        stage the backend NuGets with: scripts/setup.sh" >&2
     echo "        or set BACKEND_DLL=/path/to/Wacs.WASI.NN.<backend>.dll" >&2
     exit 1
 }
@@ -112,14 +118,14 @@ ENV_ARGS=()
 
 case "$STDERR_MODE" in
     quiet)
-        exec "$WACS_CLI" run "$WASM" --wasip2 --bind "$BACKEND_DLL" \
+        exec $WACS run "$WASM" --wasip2 --bind "$BACKEND_DLL" \
             "${ENV_ARGS[@]}" 2>/dev/null ;;
     passthrough)
-        exec "$WACS_CLI" run "$WASM" --wasip2 --bind "$BACKEND_DLL" \
+        exec $WACS run "$WASM" --wasip2 --bind "$BACKEND_DLL" \
             "${ENV_ARGS[@]}" ;;
     log)
         : > "$LOG_FILE"  # truncate
         echo "logging stderr to $LOG_FILE" >&2
-        exec "$WACS_CLI" run "$WASM" --wasip2 --bind "$BACKEND_DLL" \
+        exec $WACS run "$WASM" --wasip2 --bind "$BACKEND_DLL" \
             "${ENV_ARGS[@]}" 2>>"$LOG_FILE" ;;
 esac

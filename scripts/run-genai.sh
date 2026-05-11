@@ -23,7 +23,7 @@
 # different backend DLL + model directory layout.
 #
 # Defaults:
-#   BACKEND_DLL → Wacs.WASI.NN.OnnxRuntimeGenAI.dll under WACS_REPO
+#   BACKEND_DLL → Wacs.WASI.NN.OnnxRuntimeGenAI.dll staged by setup.sh
 #   MODEL_NAME  → gemma-3-270m-it-genai
 #                 (e.g., smartvest-llc/gemma-3-270m-it-genai from HF)
 #
@@ -35,10 +35,10 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 REPO_ROOT="$(pwd)"
 
-: "${WACS_REPO:=$REPO_ROOT/../WACS}"
-: "${BACKEND_DLL:=$WACS_REPO/Wacs.WASI/Wacs.WASI.NN/Wacs.WASI.NN.OnnxRuntimeGenAI/bin/Release/net8.0/Wacs.WASI.NN.OnnxRuntimeGenAI.dll}"
+: "${BACKENDS_DIR:=$REPO_ROOT/tools/Backends/bin/Release/net8.0}"
+: "${BACKEND_DLL:=$BACKENDS_DIR/Wacs.WASI.NN.OnnxRuntimeGenAI.dll}"
 : "${MODEL_NAME:=gemma-3-270m-it-genai}"
 
-export WACS_REPO BACKEND_DLL MODEL_NAME
+export BACKENDS_DIR BACKEND_DLL MODEL_NAME
 
 exec "$REPO_ROOT/scripts/run-llm.sh" "$@"
