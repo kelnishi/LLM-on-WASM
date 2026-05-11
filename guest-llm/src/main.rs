@@ -1,11 +1,20 @@
-//! Minimal GGML/GGUF wasi-nn REPL — WasmEdge convention.
+//! Minimal load-by-name wasi-nn REPL — WasmEdge convention.
 //!
-//! Loads a GGUF by name (the host scans `WACS_WASINN_GGUF_DIR` and
-//! registers each `*.gguf` under its filename stem). Each user line is
-//! sent as a single `U8` tensor whose bytes are the UTF-8 prompt; the
-//! host returns a single `U8` tensor whose bytes are the UTF-8 reply.
-//! All tokenization, sampling, and chat templating happens host-side
-//! inside LlamaSharp — the guest just shuttles bytes.
+//! Backend-agnostic: any wasi-nn host implementing `graph.load-by-name`
+//! with the WasmEdge U8-in / U8-out tensor convention works. Tested
+//! backends:
+//!
+//!   - `Wacs.WASI.NN.LlamaSharp` — GGUF via llama.cpp.
+//!     Default `MODEL_NAME = "qwen2.5-0.5b-instruct-q4_k_m"`; host scans
+//!     `$WACS_WASINN_GGUF_DIR` for `*.gguf` files.
+//!   - `Wacs.WASI.NN.OnnxRuntimeGenAI` — ONNX via Microsoft.ML.OnnxRuntimeGenAI.
+//!     Set `MODEL_NAME=<onnx-genai-dir-stem>` env var; host scans
+//!     `$WACS_WASINN_ONNXGENAI_DIR` for genai-config-bearing directories.
+//!
+//! Each user line is sent as a single `U8` tensor named `"0"` whose bytes
+//! are the UTF-8 prompt; the host returns a single `U8` tensor named `"0"`
+//! whose bytes are the UTF-8 reply. All tokenization, sampling, and chat
+//! templating happens host-side — the guest just shuttles bytes.
 
 use std::io::{self, BufRead, Write};
 
@@ -16,7 +25,10 @@ use wasi::nn::graph::{load_by_name, Graph};
 use wasi::nn::inference::GraphExecutionContext;
 use wasi::nn::tensor::{Tensor, TensorType};
 
-const MODEL_NAME: &str = "qwen2.5-0.5b-instruct-q4_k_m";
+// Default model name targets the LlamaSharp / GGUF path. Override at
+// run-time via `MODEL_NAME=<stem>` env var to point at any other
+// load-by-name backend (e.g., OnnxRuntimeGenAI).
+const DEFAULT_MODEL_NAME: &str = "qwen2.5-0.5b-instruct-q4_k_m";
 
 type Result<T> = std::result::Result<T, String>;
 
@@ -25,10 +37,12 @@ fn fmt_nn_err(e: NnError) -> String {
 }
 
 fn main() -> Result<()> {
-    eprintln!("loading GGUF '{MODEL_NAME}' (host resolves via $WACS_WASINN_GGUF_DIR)…");
-    let graph: Graph = load_by_name(MODEL_NAME).map_err(fmt_nn_err)?;
+    let model_name = std::env::var("MODEL_NAME")
+        .unwrap_or_else(|_| DEFAULT_MODEL_NAME.to_string());
+    eprintln!("loading model '{model_name}' via wasi-nn graph.load-by-name…");
+    let graph: Graph = load_by_name(&model_name).map_err(fmt_nn_err)?;
 
-    eprintln!("ready — {MODEL_NAME} via wasi-nn (LlamaSharp). type a message, /bye to exit.\n");
+    eprintln!("ready — {model_name} via wasi-nn (load-by-name). type a message, /bye to exit.\n");
 
     let stdin = io::stdin();
     let mut stdout = io::stdout();
