@@ -1,18 +1,82 @@
-# wasi-nn LLM examples on WACS
+# Run an LLM in WebAssembly on WACS
 
-A walkthrough of running real LLMs and small ML models inside WebAssembly
-**components** through the [`wasi-nn`](https://github.com/WebAssembly/wasi-nn)
-interface, hosted on [WACS](https://github.com/kelnishi/WACS) — a .NET
-wasm runtime with first-class wasi-nn support across multiple inference
-backends.
+A showcase of running real LLMs and small ML models inside a
+WebAssembly sandbox using [**WACS**](https://github.com/kelnishi/WACS) —
+a pure-.NET wasm runtime with first-class
+[`wasi-nn`](https://github.com/WebAssembly/wasi-nn) support. The wasm
+guests are stock `cargo build --target wasm32-wasip2` components, well
+under 100 lines of Rust apiece; WACS does the rest.
+
+> [WACS on GitHub](https://github.com/kelnishi/WACS) ·
+> [Wacs.WASI.NN backend packages](https://www.nuget.org/packages?q=Wacs.WASI.NN) ·
+> [Discussions](https://github.com/kelnishi/WACS/discussions)
+
+## Why this matters
+
+A portable wasm component holds the orchestration — prompt I/O, REPL
+loop, error handling — and WACS's [wasi-nn](https://github.com/WebAssembly/wasi-nn)
+host binds it to a real inference backend at run time. Swap the
+backend, swap the model, change runtime entirely — the guest doesn't
+recompile. That's the wasm sandbox doing what wasm sandboxes are
+supposed to do, and WACS makes it a one-liner.
+
+```
+   ┌────────────────────────────────────────┐
+   │  wasm guest (wasm32-wasip2 component)  │   ~60 lines Rust each
+   │     stdin / stdout REPL, wasi-nn       │   compiled once,
+   │     load_by_name → set_input →         │   no native deps
+   │     compute → get_output               │
+   └──────────────────┬─────────────────────┘
+                      │  wasi:nn/... @ 0.2.0-rc-2024-10-28
+   ┌──────────────────┴─────────────────────┐
+   │  WACS — pure-.NET wasm runtime         │
+   │     wasi-p2 (WIT) + wasi-p1 (WITX)     │
+   │     pluggable IBindable backends       │
+   └──────────────────┬─────────────────────┘
+                      │  --bind WACS.WASI.NN.<Backend>.dll
+   ┌──────────────────┴─────────────────────┐
+   │  Backend NuGets (host-side acceleration)│
+   │    LlamaSharp  → llama.cpp + Metal/CUDA│
+   │    OnnxRuntime → ONNX Runtime          │
+   │    OnnxRuntimeGenAI → KV-cached SLMs   │
+   │    TorchSharp  → libtorch              │
+   │    ML.NET      → classical ML pipelines│
+   └────────────────────────────────────────┘
+```
+
+## What WACS brings
+
+- **Pure-.NET wasm runtime** — no native runtime dependency, ships as
+  a `dotnet tool` (`WACS.Cli`) on any platform .NET runs on. Embed it
+  in any .NET host with a `WasmRuntime`; no FFI glue.
+- **First-class wasi-nn** across **five** backends today
+  (LlamaSharp / llama.cpp, ONNX Runtime, OnnxRuntime GenAI, TorchSharp /
+  libtorch, ML.NET) — each shipped as a separate NuGet so an embedder
+  only pulls in what they need.
+- **Both wasi-nn ABI flavors**: the modern WIT/component-model
+  interface (`wasi:nn/...@0.2.0-rc-2024-10-28`) for `wasm32-wasip2`
+  guests, plus the legacy WITX (`wasi_ephemeral_nn`) ABI for Preview 1
+  guests — making the same .gguf / .onnx asset accessible to both
+  WACS and WasmEdge with no guest-side changes.
+- **Hardware-accelerated host-side** — Metal on Apple Silicon, CUDA on
+  Linux/Windows GPUs, AVX/NEON CPU paths — picked up automatically by
+  the backend NuGets. Guests stay portable wasm bytecode.
+- **`--bind <Backend.dll>` UX** — drop a backend dll on the command
+  line and WACS isolates its native deps in a per-backend
+  `AssemblyLoadContext`. Multiple backends co-exist without `LD_*`
+  juggling.
+
+## How the examples use it
 
 The guests target `wasm32-wasip2` (the WASI Preview 2 component model)
 and use the modern wit-level wasi-nn interface
-(`wasi:nn/...@0.2.0-rc-2024-10-28`). They're tiny — under 100 lines of
-Rust each. All the heavy lifting (tokenization, KV cache, sampling,
-chat templating) lives host-side in WACS's backend NuGet packages. The
-guests just shuttle prompt bytes in and reply bytes (or tensors) out
-through the wasi-nn ABI.
+(`wasi:nn/...@0.2.0-rc-2024-10-28`). All the heavy lifting
+(tokenization, KV cache, sampling, chat templating) lives host-side in
+WACS's backend NuGet packages. The guests just shuttle prompt bytes
+in and reply bytes (or tensors) out through the wasi-nn ABI — and
+they're identical across backends. One `guest-llm.wasm` runs against
+either LlamaSharp (GGUF) or OnnxRuntime GenAI (ONNX SLM) just by
+switching which backend dll `--bind` points at.
 
 ## What's included
 

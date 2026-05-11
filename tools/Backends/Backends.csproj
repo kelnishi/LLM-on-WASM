@@ -30,11 +30,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="WACS.WASI.NN.OnnxRuntime"      Version="0.3.0" />
-        <PackageReference Include="WACS.WASI.NN.OnnxRuntimeGenAI" Version="0.1.3" />
-        <PackageReference Include="WACS.WASI.NN.LlamaSharp"       Version="0.2.2" />
-        <PackageReference Include="WACS.WASI.NN.TorchSharp"       Version="0.1.1" />
-        <PackageReference Include="WACS.WASI.NN.MLNet"            Version="0.2.2" />
+        <PackageReference Include="WACS.WASI.NN.OnnxRuntime"      Version="0.3.1" />
+        <PackageReference Include="WACS.WASI.NN.OnnxRuntimeGenAI" Version="0.1.4" />
+        <PackageReference Include="WACS.WASI.NN.LlamaSharp"       Version="0.2.3" />
+        <PackageReference Include="WACS.WASI.NN.TorchSharp"       Version="0.1.2" />
+        <PackageReference Include="WACS.WASI.NN.MLNet"            Version="0.2.3" />
     </ItemGroup>
 
 </Project>
