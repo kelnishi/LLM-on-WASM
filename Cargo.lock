@@ -2575,10 +2575,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b"
 
 [[package]]
+name = "wasi-nn"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7031683cc05a71515d9200fb159b28d717ded3c40dbb979d1602cf46f3a68f40"
+dependencies = [
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "wasi-nn-llm"
 version = "0.1.0"
 dependencies = [
  "wit-bindgen 0.57.1",
+]
+
+[[package]]
+name = "wasi-nn-llm-witx"
+version = "0.1.0"
+dependencies = [
+ "wasi-nn",
 ]
 
 [[package]]

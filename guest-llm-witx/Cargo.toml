@@ -1,0 +1,21 @@
+[package]
+name = "wasi-nn-llm-witx"
+version = "0.1.0"
+edition = "2021"
+description = "Minimal wasi-nn (WITX / Preview 1) LLM REPL — runs on WasmEdge or any other wasi_ephemeral_nn host. Same WasmEdge GGUF convention as guest-llm but targets wasm32-wasip1 with the witx binding."
+publish = false
+
+[[bin]]
+name = "wasi-nn-llm-witx"
+path = "src/main.rs"
+
+[dependencies]
+# Bytecodealliance upstream witx wasi-nn binding. Matches the
+# original spec (1-arg `compute`) WACS implements. WasmEdge's
+# fork (`wasmedge-wasi-nn`) has the GGML encoding variant + a
+# 2-arg compute, but the variants aren't cross-runtime portable.
+# We pick the LOAD-BY-NAME encoding via the host's
+# LoadByNameBackend slot rather than encoding-routing, so
+# `Autodetec` here works for both runtimes — the backend dispatch
+# is by name, not by encoding enum.
+wasi-nn = "0.6"
