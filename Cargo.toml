@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["guest", "guest-llm", "guest-llm-witx", "guest-torch", "host"]
+members = ["guest", "guest-embed", "guest-llm", "guest-llm-witx", "guest-torch", "host"]
 # Plain `cargo build` builds the host only — the guest needs an explicit
 # `--target wasm32-wasip2` and won't link natively.
 default-members = ["host"]

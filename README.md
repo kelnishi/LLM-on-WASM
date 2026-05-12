@@ -40,6 +40,7 @@ supposed to do, and WACS makes it a one-liner.
    │    OnnxRuntime → ONNX Runtime          │
    │    OnnxRuntimeGenAI → KV-cached SLMs   │
    │    TorchSharp  → libtorch              │
+   │    OpenVino    → Intel OpenVINO        │
    │    ML.NET      → classical ML pipelines│
    └────────────────────────────────────────┘
 ```
@@ -49,10 +50,10 @@ supposed to do, and WACS makes it a one-liner.
 - **Pure-.NET wasm runtime** — no native runtime dependency, ships as
   a `dotnet tool` (`WACS.Cli`) on any platform .NET runs on. Embed it
   in any .NET host with a `WasmRuntime`; no FFI glue.
-- **First-class wasi-nn** across **five** backends today
+- **First-class wasi-nn** across **six** backends today
   (LlamaSharp / llama.cpp, ONNX Runtime, OnnxRuntime GenAI, TorchSharp /
-  libtorch, ML.NET) — each shipped as a separate NuGet so an embedder
-  only pulls in what they need.
+  libtorch, OpenVINO, ML.NET) — each shipped as a separate NuGet so an
+  embedder only pulls in what they need.
 - **Both wasi-nn ABI flavors**: the modern WIT/component-model
   interface (`wasi:nn/...@0.2.0-rc-2024-10-28`) for `wasm32-wasip2`
   guests, plus the legacy WITX (`wasi_ephemeral_nn`) ABI for Preview 1
@@ -86,6 +87,15 @@ switching which backend dll `--bind` points at.
 | GGUF LLM | `guest-llm/` | Qwen2.5 0.5B Instruct (`.gguf`, Q4_K_M ~352 MB) | `WACS.WASI.NN.LlamaSharp` (llama.cpp) |
 | ONNX LLM (GenAI) | `guest-llm/` (same wasm) | Gemma 3 270M Instruct (GenAI format dir, ~864 MB) | `WACS.WASI.NN.OnnxRuntimeGenAI` |
 | TorchScript | `guest-torch/` | XOR MLP (`.pt`, ~6 KB) | `WACS.WASI.NN.TorchSharp` (libtorch) |
+| Semantic search | `guest-embed/` | all-MiniLM-L6-v2 (OpenVINO IR, ~90 MB) | `WACS.WASI.NN.OpenVino` ¹ |
+
+¹ The semantic-search demo runs on **Linux x86_64 / arm64 and
+Windows**. macOS is not supported today: Intel's official
+`OpenVINO.runtime.macos-arm64` NuGet is pinned at 2024.4.0.1 while
+the OpenVINO Python release that produces IR has moved on to
+2025.x+. The IR-format skew trips
+`Core.read_model: Incorrect weights in bin file!`. The four other
+backends work on macOS unchanged.
 
 A legacy example (`guest-llm-witx/`) targets WASI Preview 1's older
 `wasi_ephemeral_nn` ABI — kept for interoperability with WasmEdge
@@ -100,8 +110,12 @@ Prerequisites:
 - [Rust + Cargo](https://rustup.rs) — `cargo` on PATH. The
   `wasm32-wasip2` and `wasm32-wasip1` targets are pinned in
   `rust-toolchain.toml` and installed automatically on first build.
-- `python3` with `torch` — only needed for the XOR MLP example
-  (used to train and trace a TorchScript module).
+- `python3` — needed by two of the examples:
+  - `pip install torch` for the XOR MLP guest (training + TorchScript trace).
+  - `pip install openvino==2024.4.0` for the semantic-search guest
+    (ONNX → OpenVINO IR conversion at fetch time). The fetch script
+    installs the pinned version automatically; override with
+    `OPENVINO_PY_VERSION` if your platform's native NuGet is newer.
 - ~3 GB free disk for the model downloads.
 
 One-shot setup:
@@ -235,6 +249,37 @@ takes two floats and returns one float.
 
 (`scripts/build-xor-mlp.sh` requires `python3` and `pip install torch`.)
 
+### Semantic search — MiniLM-L6 via OpenVINO
+
+> **Linux / Windows only.** Skipped on macOS while the OpenVINO native
+> NuGet for macOS arm64 catches up (see footnote ¹ above).
+
+```sh
+./scripts/fetch-embed-model.sh      # ~90 MB ONNX + IR conversion
+./scripts/run-embed.sh
+```
+
+```
+>>> the apollo program
+  1. [0.547] The Apollo 11 mission landed humans on the Moon in 1969.
+  2. [0.213] Saturn's rings are made mostly of ice and rock fragments.
+  3. [0.183] A neural network is a function approximator built from simple linear units.
+
+>>> /bye
+```
+
+[all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)
+loaded as an OpenVINO IR pair (`[xml, bin]` builders — the multi-builder
+shape `wasi-nn` was explicitly designed around). The guest tokenizes
+each query, mean-pools the `[1, 64, 384]` last-hidden-state over the
+attention mask to a 384-dim sentence embedding, and ranks a built-in
+corpus of 10 reference sentences by cosine similarity.
+
+The fetch script converts the HuggingFace ONNX to IR with seq_len
+pinned to 64 (`wasi-nn` requires concrete shapes — dynamic dims
+trip a runtime error at `compile_model`). Longer queries get
+truncated guest-side; shorter ones get attention-mask zero-padding.
+
 ## Legacy: WASI Preview 1
 
 Before the WASI Preview 2 component model existed, `wasi-nn` shipped
@@ -323,17 +368,20 @@ The same compiled wasm is portable across:
 guest/                  Gemma 3 ONNX SLM (wasi-p2, byte-load, in-guest tokenizer)
 guest-llm/              backend-agnostic load-by-name LLM REPL (wasi-p2)
 guest-torch/            XOR MLP TorchScript exerciser (wasi-p2)
+guest-embed/            MiniLM-L6 semantic search via OpenVINO IR (wasi-p2)
 guest-llm-witx/         legacy WASI Preview 1 load-by-name REPL (for WasmEdge)
 host/                   wasmtime + custom Rust wasi-nn backend (parity reference)
 scripts/
-    setup.sh            install wacs + stage backend NuGets
-    fetch-model.sh      download Gemma 3 270M ONNX
-    fetch-gguf.sh       download Qwen2.5 0.5B GGUF
-    build-xor-mlp.sh    train + trace XOR MLP via PyTorch
-    run-slm.sh          run guest/ via WACS + OnnxRuntime
-    run-llm.sh          run guest-llm/ via WACS + LlamaSharp
-    run-genai.sh        run guest-llm/ via WACS + OnnxRuntimeGenAI
-    run-llm-wasmedge.sh run guest-llm-witx/ via WasmEdge + wasi-nn-ggml
+    setup.sh             install wacs + stage backend NuGets
+    fetch-model.sh       download Gemma 3 270M ONNX
+    fetch-gguf.sh        download Qwen2.5 0.5B GGUF
+    fetch-embed-model.sh download MiniLM-L6 + convert ONNX → OpenVINO IR
+    build-xor-mlp.sh     train + trace XOR MLP via PyTorch
+    run-slm.sh           run guest/ via WACS + OnnxRuntime
+    run-llm.sh           run guest-llm/ via WACS + LlamaSharp
+    run-genai.sh         run guest-llm/ via WACS + OnnxRuntimeGenAI
+    run-embed.sh         run guest-embed/ via WACS + OpenVINO   (Linux/Win)
+    run-llm-wasmedge.sh  run guest-llm-witx/ via WasmEdge + wasi-nn-ggml
 tools/Backends/         no-source csproj that stages backend NuGets
 models/                 (gitignored) downloaded models land here
 ```

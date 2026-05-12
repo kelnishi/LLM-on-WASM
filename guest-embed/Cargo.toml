@@ -1,0 +1,14 @@
+[package]
+name = "wasi-nn-embed"
+version = "0.1.0"
+edition = "2021"
+description = "Semantic-search demo: MiniLM-L6 via OpenVINO IR through wasi-nn (wasm32-wasip2)."
+publish = false
+
+[[bin]]
+name = "wasi-nn-embed"
+path = "src/main.rs"
+
+[dependencies]
+wit-bindgen = "0.57"
+tokenizers = { version = "0.23", default-features = false, features = ["unstable_wasm"] }
