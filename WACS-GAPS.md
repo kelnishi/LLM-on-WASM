@@ -1,28 +1,30 @@
 # WACS gap report — wasi-nn backend coverage
 
-No WACS-side gaps. The wasi-p2 WIT and wasi-p1 WITX ABIs are both
-end-to-end against `WACS.WASI.NN 0.4.0` + `WACS.Cli 1.7.4`, and
-new backends (e.g. `WACS.WASI.NN.OpenVino`) auto-wire into the
-Preview2 DI bundle through `BuildAutoDiscoveredCallback` — no
-WACS edit needed to add a backend NuGet.
+No open gaps. All five backends — `OnnxRuntime`, `OnnxRuntimeGenAI`,
+`LlamaSharp`, `TorchSharp`, `OpenVino` — run end-to-end against
+the published NuGet stack:
 
-## Platform note: OpenVINO on macOS arm64
+- `WACS.Cli` 1.7.6
+- `WACS.WASI.NN` 0.4.0
+- `WACS.WASI.NN.OpenVino` 0.2.1 (others at the versions pinned in
+  `tools/Backends/Backends.csproj`)
+- `OpenVINO.runtime.macos-arm64` 2026.1.0 / `OpenVINO.runtime.win`
+  2026.0.0 / `OpenVINO.runtime.ubuntu.{22-x86_64,20-arm64}`
+  2024.4.0.1
 
-The semantic-search demo (`scripts/run-embed.sh` →
-`WACS.WASI.NN.OpenVino`) is gated to Linux x86_64 / arm64 and
-Windows. The cause is upstream-of-WACS: Intel's
-`OpenVINO.runtime.macos-arm64` NuGet stops at **2024.4.0.1** while
-the OpenVINO Python release that produces IR is at **2025.x+**.
-The IR-format skew trips `Core.read_model: Incorrect weights in
-bin file!`. Until a newer macOS arm64 native NuGet ships, the
-scripts hard-exit with a clear error on `Darwin`.
+Verified on macOS arm64 (`Darwin 25.4.0`) with the
+`scripts/run-embed.sh` semantic-search demo:
 
-`WACS.WASI.NN.OpenVino` 0.1.2 includes a
-`tools/fetch-openvino-native.sh` helper that overlays Intel's
-official 2025.4.1 macOS arm64 tarball over the NuGet-staged 2024.4
-dylibs — a viable manual workaround for users who want to run the
-demo on macOS today. Not wired into this repo's setup so the
-default install stays within NuGet-pinned native versions.
+```
+>>> lunar landing
+  1. [0.592] The Apollo 11 mission landed humans on the Moon in 1969.
 
-The other four backends (OnnxRuntime / OnnxRuntimeGenAI /
-LlamaSharp / TorchSharp) work on macOS arm64 unchanged.
+>>> where is the city of paris
+  1. [0.750] The capital of France is Paris, on the river Seine.
+```
+
+`BuildAutoDiscoveredCallback` wires each `IWasiNNBackendRegistration`
+into the Preview2 DI bundle without per-backend edits to
+`WasiPreview2RuntimeScope`, so adding a new backend NuGet to
+`tools/Backends/Backends.csproj` is the only step needed on this
+side.

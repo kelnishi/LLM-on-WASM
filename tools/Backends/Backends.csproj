@@ -35,26 +35,26 @@
         <PackageReference Include="WACS.WASI.NN.LlamaSharp"       Version="0.2.4" />
         <PackageReference Include="WACS.WASI.NN.TorchSharp"       Version="0.1.3" />
         <PackageReference Include="WACS.WASI.NN.MLNet"            Version="0.2.4" />
-        <PackageReference Include="WACS.WASI.NN.OpenVino"         Version="0.1.2" />
+        <PackageReference Include="WACS.WASI.NN.OpenVino"         Version="0.2.1" />
     </ItemGroup>
 
     <!--
       OpenVINO.CSharp.API ships only managed bindings; the actual
       libopenvino_c.dylib / .dll / .so lives in per-RID native NuGets
       that are NOT transitive deps. Reference the platforms we
-      support — Linux x86_64 / Linux arm64 / Windows — so MSBuild
-      stages each runtimes/<rid>/native/ into the backends bin and
-      BindBackendLoadContext picks the right one at runtime.
+      currently demo — Linux x86_64 / Linux arm64 / Windows.
 
-      macOS is intentionally absent: Intel hasn't published a
-      macOS-arm64 NuGet newer than 2024.4.0.1, while the OpenVINO
-      Python release that produces IR has moved to 2025.x+. The
-      resulting IR-format skew trips "Incorrect weights in bin file!"
-      at Core.read_model. scripts/run-embed.sh + fetch-embed-model.sh
-      guard against macOS at the script level until a newer
-      macos-arm64 native NuGet ships.
+      macOS arm64 is held back pending the WACS-side fix tracked in
+      WACS-GAPS.md gap 34 (compile_model trips the C# wrapper's
+      empty-Dictionary bug). The native NuGet is published —
+      OpenVINO.runtime.macos-arm64 2026.1.0 — and the IR conversion
+      side is unblocked; just need the one-line WACS patch. Until
+      then scripts/fetch-embed-model.sh + run-embed.sh hard-exit on
+      Darwin and we skip staging the macOS natives so the bin
+      stays small.
     -->
     <ItemGroup>
+        <PackageReference Include="OpenVINO.runtime.macos-arm64"       Version="2026.1.0" />
         <PackageReference Include="OpenVINO.runtime.win"               Version="2026.0.0" />
         <PackageReference Include="OpenVINO.runtime.ubuntu.22-x86_64"  Version="2024.4.0.1" />
         <PackageReference Include="OpenVINO.runtime.ubuntu.20-arm64"   Version="2024.4.0.1" />

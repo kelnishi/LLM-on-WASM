@@ -20,7 +20,7 @@
 
 set -euo pipefail
 
-WACS_VERSION="${WACS_VERSION:-1.7.4}"
+WACS_VERSION="${WACS_VERSION:-1.7.6}"
 
 cd "$(dirname "$0")/.."
 REPO_ROOT="$(pwd)"

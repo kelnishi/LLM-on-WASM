@@ -87,15 +87,7 @@ switching which backend dll `--bind` points at.
 | GGUF LLM | `guest-llm/` | Qwen2.5 0.5B Instruct (`.gguf`, Q4_K_M ~352 MB) | `WACS.WASI.NN.LlamaSharp` (llama.cpp) |
 | ONNX LLM (GenAI) | `guest-llm/` (same wasm) | Gemma 3 270M Instruct (GenAI format dir, ~864 MB) | `WACS.WASI.NN.OnnxRuntimeGenAI` |
 | TorchScript | `guest-torch/` | XOR MLP (`.pt`, ~6 KB) | `WACS.WASI.NN.TorchSharp` (libtorch) |
-| Semantic search | `guest-embed/` | all-MiniLM-L6-v2 (OpenVINO IR, ~90 MB) | `WACS.WASI.NN.OpenVino` ¹ |
-
-¹ The semantic-search demo runs on **Linux x86_64 / arm64 and
-Windows**. macOS is not supported today: Intel's official
-`OpenVINO.runtime.macos-arm64` NuGet is pinned at 2024.4.0.1 while
-the OpenVINO Python release that produces IR has moved on to
-2025.x+. The IR-format skew trips
-`Core.read_model: Incorrect weights in bin file!`. The four other
-backends work on macOS unchanged.
+| Semantic search | `guest-embed/` | all-MiniLM-L6-v2 (OpenVINO IR, ~90 MB) | `WACS.WASI.NN.OpenVino` |
 
 A legacy example (`guest-llm-witx/`) targets WASI Preview 1's older
 `wasi_ephemeral_nn` ABI — kept for interoperability with WasmEdge
@@ -251,9 +243,6 @@ takes two floats and returns one float.
 
 ### Semantic search — MiniLM-L6 via OpenVINO
 
-> **Linux / Windows only.** Skipped on macOS while the OpenVINO native
-> NuGet for macOS arm64 catches up (see footnote ¹ above).
-
 ```sh
 ./scripts/fetch-embed-model.sh      # ~90 MB ONNX + IR conversion
 ./scripts/run-embed.sh
@@ -380,7 +369,7 @@ scripts/
     run-slm.sh           run guest/ via WACS + OnnxRuntime
     run-llm.sh           run guest-llm/ via WACS + LlamaSharp
     run-genai.sh         run guest-llm/ via WACS + OnnxRuntimeGenAI
-    run-embed.sh         run guest-embed/ via WACS + OpenVINO   (Linux/Win)
+    run-embed.sh         run guest-embed/ via WACS + OpenVINO
     run-llm-wasmedge.sh  run guest-llm-witx/ via WasmEdge + wasi-nn-ggml
 tools/Backends/         no-source csproj that stages backend NuGets
 models/                 (gitignored) downloaded models land here
